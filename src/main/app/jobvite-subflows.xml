@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    
+    <sub-flow name="GET-CANDIDATE-NEWHIRES">
+        <logger message="#[customerDetails.companyName] RETRIEVING CANDIDATES...." level="INFO" doc:name="Logger"/>
+        <http:request config-ref="Jobvite_HTTP_API_Request_Configuration" path="candidate" method="GET" doc:name="HTTP-Jobvite GET CANDIDATE">
+            <http:request-builder>
+                <http:query-param paramName="api" value="#[customerDetails.jobviteApiDetails.apiKey]"/>
+                <http:query-param paramName="sc" value="#[customerDetails.jobviteApiDetails.apiSecret]"/>
+                <http:query-param paramName="applicationId" value="#[flowVars.input.applicationId]"/>
+            </http:request-builder>
+        </http:request>
+        <dw:transform-message doc:name="normalizeCandidate Payload" metadata:id="a82f2289-98fc-4fc8-829f-517970a8bd2d">
+            <dw:input-payload doc:sample="siliconlabs/sampledata/candidate.json" mimeType="application/json"/>
+            <dw:set-variable variableName="customFields"><![CDATA[%dw 1.0
+%output application/java
+%var candidate = payload.candidates[0]
+---
+{
+	applicationCustomFields : { 
+	            (candidate.application.customField map {
+						($.fieldCode) : $.value
+						})
+			   },
+    requisitionCustomFields : { 
+	            (candidate.application.job.customField map {
+						($.fieldCode) : $.value
+						})
+			   }
+}]]></dw:set-variable>
+            <dw:set-variable variableName="candidatePayload"><![CDATA[%dw 1.0 
+%output application/java
+---
+
+payload.candidates
+
+	
+	
+	
+]]></dw:set-variable>
+        </dw:transform-message>
+        <logger message="#[customerDetails.companyName]  CANDIDATE INFORMATION :  #[candidatePayload]" level="INFO" doc:name="Logger"/>
+    </sub-flow>
+    
+    <sub-flow name="JOBVITE-UPDATE-CANDIDATE">
+        <dw:transform-message doc:name="set Payload">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+%var candidate = flowVars.candidatePayload[0]
+%var application = candidate.application
+---
+{
+  "candidate": {
+    "application": {
+      "eId": application.eId,
+       "workflowState": p('newhire_target_wflowstate_success') when flowVars.errorDetails == null
+       otherwise p('newhire_target_wflowstate_error'),
+      "customField": [{              
+        "fieldCode": p('integration_details_field'),
+        "value": flowVars.integrationDetails when flowVars.errorDetails == null otherwise flowVars.errorDetails
+      }
+      ]
+    }
+  }
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <logger message="#[payload]" level="INFO" doc:name="Logger"/>
+        <http:request config-ref="Jobvite_HTTP_API_Request_Configuration" path="candidate" method="PUT" doc:name="HTTP">
+               <http:request-builder>
+                <http:query-param paramName="api" value="#[customerDetails.jobviteApiDetails.apiKey]"/>
+                <http:query-param paramName="sc" value="#[customerDetails.jobviteApiDetails.apiSecret]"/>
+                <http:query-param paramName="companyId" value="#[customerDetails.jobviteApiDetails.companyId]"/>
+            </http:request-builder>
+               </http:request> 
+        <logger message="#[customerDetails.jobviteApiDetails.companyCode] : UPDATED CANDIDATE WORKFLOW STATE AND INTEGRATIOn DETAILS #[flowVars.input.applicationId]" level="INFO" doc:name="Logger"/>
+    </sub-flow>
+
+    <sub-flow name="JOBVITE-GET-JOB-DETAILS">
+        <http:request config-ref="Jobvite_HTTP_API_Request_Configuration" path="job" method="GET" doc:name="HTTP">
+            <http:request-builder>
+                <http:query-param paramName="api" value="#[customerDetails.jobviteApiDetails.apiKey]"/>
+                <http:query-param paramName="sc" value="#[customerDetails.jobviteApiDetails.apiSecret]"/>
+                <http:query-param paramName="ids" value="#[flowVars.candidatePayload.application.job.eId]"/>
+            </http:request-builder>
+        </http:request>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-variable variableName="requisitionPayload"><![CDATA[%dw 1.0
+%output application/java
+---
+
+payload.requisitions[0]]]></dw:set-variable>
+        </dw:transform-message>
+        <logger message="#[customerDetails.companyName] RETRIEVED JOB DETAILS FOR JOBID: #[flowVars.candidatePayload.application.job.eId]" level="INFO" doc:name="Logger"/>
+    </sub-flow>
+    </mule>

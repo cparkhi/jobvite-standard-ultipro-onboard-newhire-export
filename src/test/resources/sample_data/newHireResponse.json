@@ -1,0 +1,117 @@
+{
+    "contactInformation": {
+        "name": {
+            "prefix": {
+                "id": "737d942f-9d65-4359-a0f1-6335bb455609",
+                "name": {}
+            },
+            "first": "Christopher",
+            "middle": "PF",
+            "last": "Arokiaraj",
+            "suffix": {
+                "id": "a0aa2b5e-d88d-4df6-ac4f-0090f3cfd281",
+                "name": {}
+            },
+            "preferredFirst": "Chris"
+        },
+        "emailAddress": "christopher.arokiaraj@jobvite-inc.com",
+        "primaryPhone": "6505761590",
+        "secondaryPhone": "6503765000",
+        "address": {
+            "line1": "1300 S Elcamino Real",
+            "line2": "400",
+            "city": "San Mateo",
+            "postalCode": "94404",
+            "stateCode": "CA",
+            "countryCode": "USA"
+        }
+    },
+    "job": {
+        "id": "2ff8148d-85e6-4790-8600-842579ade64f",
+        "code": "ACCOUNT",
+        "name": {
+            "enUS": "Accountant"
+        },
+        "requisitionId": null,
+        "selectedFLSAStatus": 1,
+        "supervisor": {
+            "id": "fa4813be-6b3e-4aa1-8f6a-4601fd30a1c6",
+            "name": {
+                "prefix": null,
+                "first": "Abigail",
+                "middle": "Debby",
+                "last": "Tans",
+                "suffix": null,
+                "preferredFirst": "Abigail"
+            },
+            "email": "Abigail.Tans@ultimate.com",
+            "externalUserId": "3BA17190-7F93-49DE-AAEA-04EC5787E5B9"
+        },
+        "componentCompany": {
+            "id": "cde4cc6e-33b0-4cc3-95bf-9ae129108895",
+            "name": "Eastwood Industries -  HQ(27)"
+        },
+        "workLocation": {
+            "id": "62900b9b-3946-4b9f-8913-a42a7f7247b9",
+            "name": "Austin, TX"
+        },
+        "employeeType": {
+            "id": "0150e6a0-cb99-479b-91fc-29224ea7880c",
+            "name": {
+                "enUS": "Pre Hire"
+            }
+        }
+    },
+    "compensation": {
+        "isFullTime": true,
+        "isSalaried": true,
+        "workHours": 55,
+        "payRate": 150000,
+        "currencyType": "USD"
+    },
+    "mentor": null,
+    "onboardingOwner": {
+        "id": "5dd4cc04-29fb-4047-8211-599ca71bc61d",
+        "name": {
+            "prefix": null,
+            "first": "Jeanne",
+            "middle": "K.",
+            "last": "Foster",
+            "suffix": null,
+            "preferredFirst": null
+        },
+        "email": "jeannef@usgmail.net",
+        "externalUserId": "B78FECD0-72C5-4537-A70A-BD0327599450"
+    },
+    "organizationLevels": [
+        {
+            "id": "d5758648-a1fa-40a4-a1d3-40bf22a04a3d",
+            "level": 1,
+            "code": "ADMIN",
+            "description": "Administration"
+        },
+        {
+            "id": "ba986aa6-421b-4abf-b7a6-eb55247d2193",
+            "level": 2,
+            "code": "CORP",
+            "description": "Corporate"
+        },
+        {
+            "id": "29facbc9-6781-47d8-a47f-a1a9a3f731c5",
+            "level": 3,
+            "code": "SE",
+            "description": "Southeast"
+        },
+        {
+            "id": "3b795b4a-1f8b-43a9-8d3a-472467b0df64",
+            "level": 4,
+            "code": "02028",
+            "description": "Dibben, Ivan"
+        }
+    ],
+
+    "hireDate": null,
+    "orientationDate": null,
+    "startDate": "2019-04-26T00:00:00Z",
+    "personalMessage": null
+    }

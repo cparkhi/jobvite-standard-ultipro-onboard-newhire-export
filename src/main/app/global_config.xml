@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:context="http://www.springframework.org/schema/context" xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo" xmlns="http://www.mulesoft.org/schema/mule/core"
+  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mongo/current/mule-mongo.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd">
+  <mongo:config name="Mongo_DB__Configuration" database="${mongodb.database}" doc:name="Mongo DB: Configuration" host="${mongodb.host}:${mongodb.port}"/>
+  <context:property-placeholder location="newhire-${env}.properties"/>
+  <http:request-config name="Jobvite_HTTP_API_Request_Configuration" protocol="HTTPS" host="#[customerDetails.jobviteApiDetails.host]" port="#[customerDetails.jobviteApiDetails.port]"
+    basePath="#[customerDetails.jobviteApiDetails.basePath]" doc:name="HTTP Request Configuration" connectionIdleTimeout="30000000" responseTimeout="30000000"/>
+  <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="10099" basePath="integration" doc:name="HTTP Listener Configuration"/>
+  <http:request-config name="UltiPro_Token_HTTP_Request_Configuration" protocol="HTTPS" host="#[flowVars.customerDetails.ultiproApiDetails.ultiproIdentityHost]" port="443"
+    basePath="t" connectionIdleTimeout="30000000" doc:name="HTTP Request Configuration" responseTimeout="30000000"/>
+  <http:request-config name="UltiPro_NewHire_HTTP_Request_Configuration" protocol="HTTPS" host="#[flowVars.customerDetails.ultiproApiDetails.ultiproHost]" port="443"
+    basePath="talent/onboarding/v2/tenants" doc:name="HTTP Request Configuration" connectionIdleTimeout="30000000" responseTimeout="30000000"/>
+  <http:request-config name="UltiPro_custom_fields_HTTP_Request_Configuration" protocol="HTTPS" host="#[flowVars.customerDetails.ultiproApiDetails.customFields_ultiproHost]" port="443"
+    basePath="/" doc:name="HTTP Request Configuration" connectionIdleTimeout="30000000" responseTimeout="30000000">
+        <http:basic-authentication username="#[flowVars.customerDetails.ultiproApiDetails.ultiproUsername]" password="#[flowVars.customerDetails.ultiproApiDetails.ultiproPassword]"/>
+    </http:request-config>
+</mule>

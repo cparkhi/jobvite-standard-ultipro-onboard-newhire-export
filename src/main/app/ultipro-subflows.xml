@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+  xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+  xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+
+  <sub-flow name="ULTIPRO-GET-TOKEN">
+    <dw:transform-message doc:name="Transform Message">
+      <dw:set-payload><![CDATA[  %dw 1.0
+  %output application/java
+  ---
+  {
+      "grant_type":"client_credentials",
+      "client_id": flowVars.customerDetails.ultiproApiDetails.ultiproClientId,
+      "client_secret": flowVars.customerDetails.ultiproApiDetails.ultiproClientSecret
+  }]]></dw:set-payload>
+    </dw:transform-message>
+    <http:request config-ref="UltiPro_Token_HTTP_Request_Configuration" path="#[flowVars.customerDetails.ultiproApiDetails.ultiproUserAccessKey]/token" method="POST" doc:name="Extract UltiPro Token">
+      <http:request-builder>
+        <http:header headerName="Content-Type" value="application/x-www-form-urlencoded"/>
+        <http:header headerName="host" value="#[flowVars.customerDetails.ultiproApiDetails.ultiproIdentityHost]"/>
+      </http:request-builder>
+    </http:request>
+    <object-to-string-transformer doc:name="Object to String"/>
+    <dw:transform-message doc:name="Transform Message">
+      <dw:set-variable variableName="ultiproTokenResponse"><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-variable>
+    </dw:transform-message>
+    <set-variable variableName="ultipro_token" value="#[flowVars.ultiproTokenResponse.access_token]" doc:name="Copy Token"/>
+  </sub-flow>
+
+  <sub-flow name="ULTIPRO-POST-NEWHIRE">
+    <http:request config-ref="UltiPro_NewHire_HTTP_Request_Configuration" path="#[flowVars.customerDetails.ultiproApiDetails.ultiproUserAccessKey]/new-hires" method="POST" doc:name="Post New Hire">
+      <http:request-builder>
+        <http:header headerName="Authorization" value="Bearer #[flowVars.ultipro_token]"/>
+        <http:header headerName="X-Partner-Id" value="jobvite"/>
+      </http:request-builder>
+      <http:success-status-code-validator values="200..599"/>
+    </http:request>
+    <object-to-string-transformer mimeType="application/json" doc:name="Object to String"/>
+    <logger message="UP RESPONSE = #[payload]" level="INFO" doc:name="Logger"/>
+    <dw:transform-message doc:name="Transform Message">
+      <dw:set-variable variableName="ultiproNewHireResponse"><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-variable>
+    </dw:transform-message>
+    <choice doc:name="Choice">
+      <when expression="#[flowVars.ultiproNewHireResponse.id != null]">
+        <set-variable variableName="integrationDetails" value="ID: #[flowVars.ultiproNewHireResponse.id]#[System.getProperty('line.separator')]Created Date : #[flowVars.ultiproNewHireResponse.createdAt]"
+          doc:name="Variable"/>
+      </when>
+      <otherwise>
+        <set-variable variableName="errorDetails" value="UltiPro Error List !" doc:name="Variable"/>
+        <foreach collection="ultiproNewHireResponse.errors.modelState" doc:name="For Each">
+          <expression-component doc:name="Expression"><![CDATA[flowVars.errorDetails = flowVars.errorDetails + '\n' +payload[0].message;
+]]></expression-component>
+        </foreach>
+        <logger message="Error Message : &#160;#[flowVars.errorDetails]" level="INFO" doc:name="Logger"/>
+      </otherwise>
+    </choice>
+  </sub-flow>
+
+  <sub-flow name="GET-ALL-JOBS">
+    <logger message="Getting all Jobs from Ultipro for #[flowVars.companyCode]" level="INFO" doc:name="Logger"/>
+    <http:request config-ref="UltiPro_custom_fields_HTTP_Request_Configuration" path="configuration/v1/jobs" method="GET" doc:name="Get all jobs">
+      <http:request-builder>
+        <http:header headerName="X-Partner-Id" value="jobvite"/>
+        <http:header headerName="US-Customer-Api-Key" value="#[flowVars.customerDetails.ultiproApiDetails.ultiproClientAccessKey]"/>
+      </http:request-builder>
+      <http:success-status-code-validator values="200..599"/>
+    </http:request>
+    <object-to-string-transformer mimeType="application/json" doc:name="Object to String"/>
+    <logger message="UP RESPONSE = #[payload]" level="INFO" doc:name="Logger"/>
+  </sub-flow>
+
+  <sub-flow name="GET-ALL-COMPANY-DETAILS">
+    <logger message="Getting all company details from Ultipro for #[flowVars.companyCode]" level="INFO" doc:name="Logger"/>
+    <http:request config-ref="UltiPro_custom_fields_HTTP_Request_Configuration" path="configuration/v1/company-details" method="GET" doc:name="Get all company-details">
+      <http:request-builder>
+        <http:header headerName="X-Partner-Id" value="jobvite"/>
+        <http:header headerName="US-Customer-Api-Key" value="#[flowVars.customerDetails.ultiproApiDetails.ultiproClientAccessKey]"/>
+      </http:request-builder>
+      <http:success-status-code-validator values="200..599"/>
+    </http:request>
+    <object-to-string-transformer mimeType="application/json" doc:name="Object to String"/>
+    <logger message="UP RESPONSE = #[payload]" level="INFO" doc:name="Logger"/>
+  </sub-flow>
+
+  <sub-flow name="GET-ALL-LOCATIONS">
+    <logger message="Getting all locations from Ultipro for #[flowVars.companyCode]" level="INFO" doc:name="Logger"/>
+    <http:request config-ref="UltiPro_custom_fields_HTTP_Request_Configuration" path="configuration/v1/locations" method="GET" doc:name="Get all locations">
+      <http:request-builder>
+        <http:header headerName="X-Partner-Id" value="jobvite"/>
+        <http:header headerName="US-Customer-Api-Key" value="#[flowVars.customerDetails.ultiproApiDetails.ultiproClientAccessKey]"/>
+      </http:request-builder>
+      <http:success-status-code-validator values="200..599"/>
+    </http:request>
+    <object-to-string-transformer mimeType="application/json" doc:name="Object to String"/>
+    <logger message="UP RESPONSE = #[payload]" level="INFO" doc:name="Logger"/>
+  </sub-flow>
+
+  <sub-flow name="GET-ALL-USER-PROFILE-DETAILS">
+    <http:request config-ref="UltiPro_custom_fields_HTTP_Request_Configuration" path="personnel/v1/user-profile-details" method="GET" doc:name="Get user profiles">
+      <http:request-builder>
+        <http:query-param paramName="roleId" value="62"/>
+        <http:query-param paramName="userStatus" value="A"/>
+        <http:header headerName="X-Partner-Id" value="jobvite"/>
+        <http:header headerName="US-Customer-Api-Key" value="#[flowVars.customerDetails.ultiproApiDetails.ultiproClientAccessKey]"/>
+      </http:request-builder>
+      <http:success-status-code-validator values="200..599"/>
+    </http:request>
+    <object-to-string-transformer mimeType="application/json" doc:name="Object to String"/>
+    <logger message="UP RESPONSE = #[payload]" level="INFO" doc:name="Logger"/>
+  </sub-flow>
+
+  <sub-flow name="GET-CODE-TABLES">
+    <http:request config-ref="UltiPro_custom_fields_HTTP_Request_Configuration" path="api/configuration/v1/code-tables/#[payload]" method="GET" doc:name="Get code tables">
+      <http:request-builder>
+        <http:header headerName="X-Partner-Id" value="jobvite"/>
+        <http:header headerName="US-Customer-Api-Key" value="#[flowVars.customerDetails.ultiproApiDetails.ultiproClientAccessKey]"/>
+      </http:request-builder>
+      <http:success-status-code-validator values="200..599"/>
+    </http:request>
+    <object-to-string-transformer mimeType="application/json" doc:name="Object to String"/>
+    <logger message="UP RESPONSE = #[payload]" level="INFO" doc:name="Logger"/>
+  </sub-flow>
+
+</mule>

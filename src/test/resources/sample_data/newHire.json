@@ -1,0 +1,61 @@
+{
+  "contactInformation": {
+    "name": {
+      "prefix": {
+        "code": ""
+      },
+      "first": "v2",
+      "middle": "Middle Name",
+      "last": "Last Name",
+      "preferredFirst": "Preferred",
+      "suffix": {
+        "id": ""
+      }
+    },
+    "primaryPhone": "954-687-8909",
+    "secondaryPhone": "9545554567",
+    "address": {
+      "line1": "Line 1",
+      "line2": "Line 2",
+      "city": "Weston",
+      "postalCode": "33326",
+      "stateCode": "FL",
+      "countryCode": "USA"
+    },
+    "emailAddress": "first@last.com"
+  },
+  "onboardingOwnerId": "",
+  "hireDate": "12/12/2018",
+  "startDate": "12/12/2018",
+  "orientationDate": "12/12/2018",
+  "pastStartDateReason": "",
+  "compensation": {
+    "salaried": false,
+    "payRate": 20,
+    "fullTime": true,
+    "workHours": 40
+  },
+  "job": {
+    "code": "CSTLN",
+    "requisitionId": "1234",
+    "selectedFLSAStatus": "1",
+    "componentCompany": {
+      "id": ""
+    },
+    "workLocation": {
+      "id": ""
+    },
+    "employeeType": {
+      "id": ""
+    },
+    "supervisor": {
+      "id": ""
+    }
+  },
+  "organizationLevels": [],
+  "mentor": {
+    "id": "",
+    "description": ""
+  },
+  "personalMessage": "Welcome!!!"
+}

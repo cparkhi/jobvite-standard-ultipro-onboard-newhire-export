@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:schedulers="http://www.mulesoft.org/schema/mule/schedulers"
+	xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:encryption="http://www.mulesoft.org/schema/mule/encryption" xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/encryption http://www.mulesoft.org/schema/mule/encryption/current/mule-encryption.xsd
+http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd">
+    <sftp:connector name="SFTP" validateConnections="true" doc:name="SFTP" archiveDir="/opt/customerdata/#[customerDetails.companyName]/outbound"/>
+
+ <sub-flow name="PROCESS-NEWHIRES">
+        <flow-ref name="PROCESS-EACH-NEWHIRE" doc:name="PROCESS-EACH-NEWHIRE"/>
+        <flow-ref name="JOBVITE-UPDATE-CANDIDATE" doc:name="JOBVITE-UPDATE-CANDIDATE"/>
+        <!-- <file:outbound-endpoint path="/opt/customerdata/siliconlabs/outbound" outputPattern="NewHire_#[server.dateTime.format(&quot;yyyy-MM-dd-HH-mm-ss&quot;)].csv" responseTimeout="10000" doc:name="File"/> -->
+        
+    </sub-flow>
+    <flow name="PROCESS-EACH-NEWHIRE">
+        <flow-ref name="ULTIPRO-GET-TOKEN" doc:name="ULTIPRO-GET-TOKEN"/>
+        <dw:transform-message doc:name="Generate Onboard JSON" metadata:id="b3bbab7c-72ca-4ab2-9692-00d679e758b7">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json skipNullOn = "everywhere"
+%var candidate = flowVars.candidatePayload[0]
+%var application = candidate.application
+%var job = candidate.application.job
+%var manager = job.primaryHiringManager
+%var appCustomFields = flowVars.customFields.applicationCustomFields
+%var jobCustomFields = flowVars.customFields.requisitionCustomFields
+---
+{
+	contactInformation: {
+		name: {
+			first: candidate.firstName,
+			middle: appCustomFields.up_middle_name,
+			last: candidate.lastName,
+			preferredFirst: (appCustomFields.up_preferred_name) 
+				when appCustomFields.up_preferred_name != null and appCustomFields.up_preferred_name != "" otherwise candidate.firstName
+		},
+		emailAddress: candidate.email,
+		primaryPhone: candidate.homePhone,
+		secondaryPhone: candidate.cellPhone,
+		address: {
+			line1: candidate.address,
+			line2: appCustomFields.up_address_2,
+			city: candidate.city,
+			postalCode: candidate.postalCode,
+			stateCode: candidate.stateCode,
+			countryCode: candidate.countryCode
+		}
+	},
+	job: {
+		code: trim (jobCustomFields.up_job_code splitBy "-")[-1]  default "" ,
+		requisitionId: job.requisitionId,
+		(selectedFLSAStatus: "1") when appCustomFields.up_flsa_status == "Exempt",
+		(selectedFLSAStatus: "2") when appCustomFields.up_flsa_status == "Non-Exempt",
+		componentCompany: {
+			code:  trim (jobCustomFields.up_company_identifier splitBy "-")[-1]  default ""
+		},
+		workLocation: {
+			code: trim (jobCustomFields.up_location_code splitBy "-")[-1]  default "" 
+		},
+		employeeType: {
+			code: trim (appCustomFields.up_employee_type splitBy "-")[-1]  default "" 
+		}
+	},
+	compensation: {
+		isFullTime: appCustomFields.up_full_time,
+		isSalaried: appCustomFields.up_salaried,
+		workHours: jobCustomFields.up_scheduled_hours,
+		payRate: appCustomFields.up_pay_rate
+	},
+	organizationLevels: [
+		{
+		level: 1,
+		code: trim (jobCustomFields.up_org_level_1 splitBy "-")[-1]  default "" 
+		},
+		{
+		level: 2,
+		code: trim (jobCustomFields.up_org_level_2 splitBy "-")[-1]  default "" 
+		},
+		({
+		level: 3,
+		code: trim (jobCustomFields.up_org_level_3 splitBy "-")[-1]  default "" 
+		}) when jobCustomFields.up_org_level_3 != null and jobCustomFields.up_org_level_3 != "",
+		({
+		level: 4,
+		code: trim (jobCustomFields.up_org_level_4 splitBy "-")[-1]  default "" 
+		}) when jobCustomFields.up_org_level_4 != null and jobCustomFields.up_org_level_4 != ""
+	],
+	onboardingOwnerId: trim (jobCustomFields.up_onboarding_owner splitBy ":")[-1]  default "",
+	orientationDate: (application.startDate / 1000) as :datetime{format: "yyyy-MM-dd"} when (application.startDate? and application.startDate != '') otherwise "",
+	hireDate: (application.hireDate / 1000) as :datetime{format: "yyyy-MM-dd"} when (application.hireDate? and application.hireDate != '') otherwise "",
+	startDate: (application.startDate / 1000) as :datetime{format: "yyyy-MM-dd"} when (application.startDate? and application.startDate != '') otherwise "",
+	personalMessage: "Pre Hire from Jobvite"
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <logger message="UltiPro Onboard Request : #[payload]" level="INFO" doc:name="Logger"/>
+        <flow-ref name="ULTIPRO-POST-NEWHIRE" doc:name="ULTIPRO-POST-NEWHIRE"/>
+       <!--  <flow-ref name="GET_RECRUITER_ID" doc:name="GET RECRUITER ID"/> -->
+        <exception-strategy ref="Jobvite_GlobalChoiceExceptionStrategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+<!--   <sub-flow name="GET_RECRUITER_ID">
+        <set-variable variableName="employeeEmail" value="#[flowVars.currentCandidate.application.job.recruiters[0].userName]" doc:name="SET EMAIL"/>
+        <flow-ref name="JOBVITE-GET-EMPLOYEE" doc:name="GET EMPLOYEE"/>
+    </sub-flow> -->
+    
+    
+    
+</mule>

@@ -1,0 +1,14 @@
+{
+    "inputMessageMetadata": {
+        "flowVariables": {
+            "jobCustomFields": {},
+            "currentCandidate": {},
+            "customerDetails": {},
+            "appCustomFields": {},
+            "errorDetails": {}
+        }
+    },
+    "outputMessageMetadata": {},
+    "id": "3e297ba8-3c61-4077-89be-7fb0b0ee42aa",
+    "version": "5.2.0.0"
+}

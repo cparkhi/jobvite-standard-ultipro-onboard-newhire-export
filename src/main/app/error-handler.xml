@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:json="http://www.mulesoft.org/schema/mule/json"
+	xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+	xmlns:amqps="http://www.mulesoft.org/schema/mule/amqps"
+	xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
+http://www.mulesoft.org/schema/mule/amqps http://www.mulesoft.org/schema/mule/amqps/current/mule-amqps.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <choice-exception-strategy name="Jobvite_GlobalChoiceExceptionStrategy">
+        <catch-exception-strategy when="#[exception.causedBy(java.net.ConnectException)]" doc:name="Connect Exception Strategy" logException="false" enableNotifications="false">
+            <logger message="#[exception.info.Element]  #[exception.message]" level="ERROR" doc:name="Logger"/>
+            <set-variable variableName="errorDetails" value="HTTP ERROR: #[org.mule.util.ExceptionUtils.getRootCause(exception)]. Error connecting or sending data to an external system. Please check the connection details and/or the request payload." doc:name="Variable"/>
+        </catch-exception-strategy>
+        <catch-exception-strategy when="#[exception.causedBy(java.io.IOException)]" doc:name="IO Exception Strategy" logException="false" enableNotifications="false">
+            <logger message="#[exception.info.Element]  #[exception.message]" level="ERROR" doc:name="Logger"/>
+            <set-variable variableName="errorDetails" value="FILE ERROR: #[org.mule.util.ExceptionUtils.getRootCause(exception)]. Error interacting with the file system, could be due to a missing file , file permission issues." doc:name="Variable"/>
+        </catch-exception-strategy>
+        <catch-exception-strategy when="#[exception.causeMatches('*.weave.*')]" doc:name="Dataweave Exception Strategy" logException="false" enableNotifications="false">
+            <logger message="#[exception.info.Element]  #[exception.message]" level="INFO" doc:name="Logger"/>
+            <set-variable variableName="errorDetails" value="DATA ERROR: #[org.mule.util.ExceptionUtils.getRootCause(exception)] .One or more required fields is missing." doc:name="Variable"/>
+        </catch-exception-strategy>
+        <catch-exception-strategy when="#[exception.causeMatches('*.expression.*')]" doc:name="Mule Expression Language Exception" logException="false" enableNotifications="false">
+            <logger message="#[exception.info.Element]  #[exception.message]" level="INFO" doc:name="Logger"/>
+            <set-variable variableName="errorDetails" value="DATA ERROR: #[org.mule.util.ExceptionUtils.getRootCause(exception)] .One or more required fields is missing." doc:name="Variable"/>
+        </catch-exception-strategy>
+        <catch-exception-strategy when="#[exception.causeMatches('org.mule.module.http*')]" doc:name="HTTP EXCEPTION" logException="false" enableNotifications="false">
+            <logger message="#[exception.info.Element]  #[exception.message]" level="ERROR" doc:name="Copy_of_Logger"/>
+            <set-variable variableName="errorDetails" value="DATA ERROR: #[org.mule.util.ExceptionUtils.getRootCause(exception)] #[exception.getMessage()]. Exception while connecting to API" doc:name="Copy_of_Variable"/>
+        </catch-exception-strategy>
+        <catch-exception-strategy doc:name="Catch Exception Strategy" logException="false">
+            <logger level="INFO" doc:name="Logger" message="#[exception.info.Element]  #[exception.message]"/>
+            <set-variable variableName="errorDetails" value="GENERIC ERROR: #[org.mule.util.ExceptionUtils.getRootCause(exception)] #[exception.getMessage()]." doc:name="GeneralExceptionDetails"/>
+        </catch-exception-strategy> 
+    </choice-exception-strategy>
+    
+</mule>
